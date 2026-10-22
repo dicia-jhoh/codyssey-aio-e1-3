@@ -152,7 +152,7 @@ python3 main.py         # Windows 는 python main.py · Python 3.8 이상, 외�
 - 모드 1 에서 행 대신 `cross` 나 `x` 한 단어를 넣으면 3×3 패턴을 자동으로 만든다(보너스 2).
 - 입력 중 `Ctrl+D`(EOF) 나 `Ctrl+C` 를 눌러도 오류 없이 종료한다.
 
-실행 환경: Linux 7.2(Omarchy), Python 3.14.8.
+실행 환경: Arch Linux(커널 7.2), Python 3.14.8.
 
 ## 🧩 2. 구현 요약
 
