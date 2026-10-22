@@ -5,6 +5,7 @@
 """
 
 import json
+import math
 import time
 
 EPSILON = 1e-9  # 두 점수 차이가 이보다 작으면 동점(판정 불가)
@@ -53,6 +54,9 @@ def is_square(matrix, n):
         for value in row:
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 return False
+            # json 은 NaN·Infinity 를 읽어 들인다 — 비교가 정의되지 않아 거짓 PASS 를 낸다
+            if isinstance(value, float) and not math.isfinite(value):
+                return False
     return True
 
 
@@ -89,14 +93,25 @@ def normalize_label(raw):
     return LABEL_ALIASES.get(raw.strip().lower())
 
 
+def parse_size(text):
+    """'13' → 13. 양의 정수가 아니면 None(isdigit 은 '²' 같은 문자도 통과시켜 int 에서 터진다)."""
+    try:
+        n = int(text)
+    except ValueError:
+        return None
+    return n if n > 0 else None
+
+
 def size_from_key(key):
     """'size_13_2' → 13. 형식이 다르면 None."""
     parts = key.split("_")
     if len(parts) != 3 or parts[0] != "size":
         return None
-    if not parts[1].isdigit() or not parts[2].isdigit():
+    try:
+        int(parts[2])  # 순번은 숫자이기만 하면 된다
+    except ValueError:
         return None
-    return int(parts[1])
+    return parse_size(parts[1])
 
 
 # ---------------------------------------------------------------- 패턴 생성기(보너스 2)
@@ -175,9 +190,10 @@ def print_benchmark(sizes, repeat=REPEAT):
 def flatten(matrix):
     """n×n 2차원 리스트를 길이 n² 1차원 리스트로 편다."""
     flat = []
-    for row in matrix:
-        for value in row:
-            flat.append(value)
+    n = len(matrix)
+    for i in range(n):
+        for j in range(len(matrix[i])):
+            flat.append(get_value(matrix, i, j))
     return flat
 
 
@@ -240,9 +256,12 @@ def parse_row(line, n):
     if len(parts) != n:
         raise ValueError(f"입력 형식 오류: 각 줄에 {n}개의 숫자를 공백으로 구분해 입력하세요.")
     try:
-        return [float(p) for p in parts]
+        values = [float(p) for p in parts]
     except ValueError:
         raise ValueError("입력 형식 오류: 숫자만 입력하세요.") from None
+    if not all(math.isfinite(v) for v in values):
+        raise ValueError("입력 형식 오류: nan·inf 는 점수를 비교할 수 없습니다. 보통 숫자를 입력하세요.")
+    return values
 
 
 def read_matrix(title, n, read=input):
@@ -321,10 +340,13 @@ def load_filters(raw_filters):
     filters = {}
     for key, pair in raw_filters.items():
         parts = key.split("_")
-        if len(parts) != 2 or parts[0] != "size" or not parts[1].isdigit():
+        n = parse_size(parts[1]) if len(parts) == 2 and parts[0] == "size" else None
+        if n is None:
             print(f"✗ {key}: 필터 키 형식이 size_N 이 아님 — 건너뜀")
             continue
-        n = int(parts[1])
+        if not isinstance(pair, dict):
+            print(f"✗ {key}: 필터 항목이 {{cross, x}} 객체가 아님 — 건너뜀")
+            continue
         loaded = {}
         for raw_label, matrix in pair.items():
             label = normalize_label(raw_label)
@@ -360,7 +382,7 @@ def judge_case(key, entry, filters):
         case["error"] = f"size_{n} 필터가 없음"
         return case
     if not is_square(entry["input"], n):
-        case["error"] = f"패턴이 {n}×{n} 이 아님(필터와 크기 불일치)"
+        case["error"] = f"패턴이 {n}×{n} 유한 숫자 행렬이 아님(크기 불일치 또는 숫자 아닌 값)"
         return case
     cross_score = mac(entry["input"], filters[n][CROSS])
     x_score = mac(entry["input"], filters[n][X])
