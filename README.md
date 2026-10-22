@@ -272,8 +272,16 @@ X 점수: 0.1
 실패: 6개
 ```
 
-**코드 리뷰(OCR)로 찾은 경계값** — 예전 코드는 아래 입력에서 분석 전체가 멈추거나(`AttributeError`·`ValueError`) NaN 으로 거짓 PASS 를 냈다.
-고친 뒤에는 그 항목만 건너뛰거나 FAIL 로 남기고 끝까지 돈다.
+**코드 리뷰(OCR)로 찾은 경계값** — 예전 코드는 아래 입력에서 분석 전체가 멈추거나(`AttributeError`·`ValueError`),
+NaN 이나 너무 큰 값(1e308 끼리 곱하면 `inf`)으로 거짓 PASS 를 냈다. 고친 뒤에는 그 항목만 건너뛰거나 FAIL 로 남기고 끝까지 돈다.
+
+| 입력 | 예전 | 지금 |
+|---|---|---|
+| `filters.size_9 = null` | `AttributeError` 로 중단 | 그 필터만 건너뜀 |
+| 키 `size_²`, `size_²_1` | `ValueError` 로 중단 | 형식 오류로 건너뜀·FAIL |
+| 키 `size_5_-1` | 정상 케이스로 판정 | 형식 오류 FAIL |
+| 값 `NaN` | 거짓 PASS | 숫자 아닌 값으로 FAIL |
+| 값 `1e308`(점수 `inf`) | inf 끼리 비교해 거짓 PASS | 판정 불가(overflow) |
 ```text
 ✗ size_9: 필터 항목이 {cross, x} 객체가 아님 — 건너뜀
 ✗ size_²: 필터 키 형식이 size_N 이 아님 — 건너뜀
