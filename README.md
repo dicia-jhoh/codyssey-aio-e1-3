@@ -65,8 +65,8 @@ AI 가 사진 속 고양이를 알아보는 것도 크게 보면 같은 일을 �
 천천히 해도 10분이면 끝난다. 각 단계마다 **칠 것 → 나와야 하는 화면 → 무슨 뜻인지** 순서로 적었다.
 
 1. **파일을 받는다.**
-   GitHub 저장소 페이지에서 초록색 **[Code]** 버튼 → **[Download ZIP]** 을 누르고, 받은 ZIP 파일의 압축을 푼다.
-   Git 을 쓸 줄 알면 `git clone <저장소 주소>` 도 된다. (지금은 GitHub 에 올리기 전 초안이라, 올린 뒤 이 자리에 주소가 들어간다.)
+   [GitHub 저장소 페이지](https://github.com/dicia-jhoh/codyssey-aio-e1-3)에서 초록색 **[Code]** 버튼 → **[Download ZIP]** 을 누르고, 받은 ZIP 파일의 압축을 푼다.
+   Git 을 쓸 줄 알면 `git clone https://github.com/dicia-jhoh/codyssey-aio-e1-3.git` 도 된다.
    🆘 ZIP 이 안 되면 `main.py` 와 `data.json` 두 파일만 **같은 폴더**에 받아 둬도 된다.
 
 2. **터미널에서 그 폴더로 들어간다.** `cd ` 까지 치고(뒤에 빈칸 하나), 압축을 푼 폴더를 터미널 창으로 **끌어다 놓으면** 경로가 자동으로 써진다. 그다음 Enter.
