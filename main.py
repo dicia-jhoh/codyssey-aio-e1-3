@@ -121,6 +121,9 @@ def generate_x(n):
     return matrix
 
 
+GENERATORS = {"cross": generate_cross, "x": generate_x}
+
+
 # ---------------------------------------------------------------- 성능 측정
 
 
@@ -166,6 +169,51 @@ def print_benchmark(sizes, repeat=REPEAT):
     return times
 
 
+# ---------------------------------------------------------------- 1차원 최적화(보너스 1)
+
+
+def flatten(matrix):
+    """n×n 2차원 리스트를 길이 n² 1차원 리스트로 편다."""
+    flat = []
+    for row in matrix:
+        for value in row:
+            flat.append(value)
+    return flat
+
+
+def mac_flat(a, b):
+    """1차원으로 편 두 배열의 MAC. 행을 따라가는 이중 인덱싱이 없다."""
+    total = 0.0
+    for i in range(len(a)):
+        total += a[i] * b[i]
+    return total
+
+
+def compare_flat(sizes, repeat=REPEAT):
+    """같은 입력·같은 반복 횟수로 2차원 MAC 와 1차원 MAC 의 평균 시간(ms)을 비교한다."""
+    print(LINE)
+    print(f"# [5] 보너스: 2차원 vs 1차원 MAC (평균/{repeat}회)")
+    print(LINE)
+    print(f"{'크기':<10}{'2차원(ms)':>12}{'1차원(ms)':>12}{'배율':>8}")
+    rows = []
+    for n in sizes:
+        a, b = generate_cross(n), generate_x(n)
+        flat_a, flat_b = flatten(a), flatten(b)
+        assert is_close(mac(a, b), mac_flat(flat_a, flat_b))  # 같은 값을 내야 비교가 의미 있다
+        start = time.perf_counter()
+        for _ in range(repeat):
+            mac(a, b)
+        two_d = (time.perf_counter() - start) / repeat * 1000
+        start = time.perf_counter()
+        for _ in range(repeat):
+            mac_flat(flat_a, flat_b)
+        one_d = (time.perf_counter() - start) / repeat * 1000
+        ratio = two_d / one_d if one_d > 0 else 0.0
+        rows.append((n, two_d, one_d))
+        print(f"{f'{n}×{n}':<10}{two_d:>12.4f}{one_d:>12.4f}{ratio:>7.2f}x")
+    return rows
+
+
 # ---------------------------------------------------------------- 실패 진단
 
 
@@ -198,12 +246,23 @@ def parse_row(line, n):
 
 
 def read_matrix(title, n, read=input):
-    """n 줄을 받아 n×n 행렬을 만든다. 틀린 줄은 그 줄만 다시 받는다."""
-    print(f"{title} ({n}줄 입력, 공백 구분)")
+    """n 줄을 받아 n×n 행렬을 만든다. 틀린 줄은 그 줄만 다시 받는다.
+
+    첫 줄에 `cross` 나 `x` 를 넣으면 패턴 생성기가 n×n 패턴을 대신 만든다(보너스 2).
+    """
+    print(f"{title} ({n}줄 입력, 공백 구분 — 또는 cross / x 한 단어로 자동 생성)")
     matrix = []
     while len(matrix) < n:
+        line = read()
+        generated = GENERATORS.get(line.strip().lower()) if not matrix else None
+        if generated:
+            matrix = generated(n)
+            print(f"  ✓ {line.strip()} 패턴 자동 생성")
+            for row in matrix:
+                print("  " + " ".join(f"{v:g}" for v in row))
+            break
         try:
-            matrix.append(parse_row(read(), n))
+            matrix.append(parse_row(line, n))
         except ValueError as e:
             print(f"  {e} ({len(matrix) + 1}번째 줄을 다시 입력하세요)")
     return matrix
@@ -375,6 +434,7 @@ def run_json_mode(path=DATA_PATH):
         )
     )
     print(f"복잡도: {complexity['estimated_order']} ({ratios})")
+    compare_flat(BENCH_SIZES)
     return {"cases": cases, "times": times, "complexity": complexity}
 
 
