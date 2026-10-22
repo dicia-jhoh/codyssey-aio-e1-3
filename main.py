@@ -80,7 +80,12 @@ def is_close(a, b, epsilon=EPSILON):
 
 
 def decide(score_a, score_b, label_a, label_b, epsilon=EPSILON):
-    """점수가 큰 쪽의 라벨을 돌려준다. 차이가 epsilon 미만이면 UNDECIDED."""
+    """점수가 큰 쪽의 라벨을 돌려준다. 차이가 epsilon 미만이거나 점수가 유한하지 않으면 UNDECIDED.
+
+    아주 큰 값(1e308 등)은 곱하고 더하다 inf 로 넘쳐서 inf 끼리 비교하면 아무 쪽이나 고르게 된다.
+    """
+    if not (math.isfinite(score_a) and math.isfinite(score_b)):
+        return UNDECIDED
     if is_close(score_a, score_b, epsilon):
         return UNDECIDED
     return label_a if score_a > score_b else label_b
@@ -108,8 +113,10 @@ def size_from_key(key):
     if len(parts) != 3 or parts[0] != "size":
         return None
     try:
-        int(parts[2])  # 순번은 숫자이기만 하면 된다
+        index = int(parts[2])
     except ValueError:
+        return None
+    if index < 0:  # 순번은 0 이상 — 'size_5_-1' 같은 키는 형식 오류
         return None
     return parse_size(parts[1])
 
@@ -239,6 +246,8 @@ def diagnose_failure(case):
         return {"category": "data_schema", "reason": case["error"]}
     if case["verdict"] == case["expected"]:
         return {"category": "none", "reason": "판정과 정답이 같다"}
+    if case["verdict"] == UNDECIDED and not all(math.isfinite(x) for x in case["scores"]):
+        return {"category": "numerical", "reason": "점수가 너무 커서 inf 로 넘쳐 비교할 수 없음(overflow)"}
     if case["verdict"] == UNDECIDED:
         return {
             "category": "numerical",
@@ -312,7 +321,9 @@ def run_user_mode(read=input):
     print(f"A 점수: {score_a}")
     print(f"B 점수: {score_b}")
     print(f"연산 시간(평균/{REPEAT}회): {elapsed:.4f} ms")
-    if verdict == UNDECIDED:
+    if verdict == UNDECIDED and not (math.isfinite(score_a) and math.isfinite(score_b)):
+        print("판정: 판정 불가 (점수가 너무 커서 inf 로 넘침 — 비교할 수 없음)")
+    elif verdict == UNDECIDED:
         print(f"판정: 판정 불가 (|A-B| < {EPSILON_TEXT})")
     else:
         print(f"판정: {verdict}")
